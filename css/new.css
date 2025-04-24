@@ -1,0 +1,62 @@
+body {
+    background-color: lightblue;
+    color: black;
+    font-family: Arial, sans-serif;
+}
+
+#content {
+    margin: 5em 30em 5em 30em;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 500px;
+    padding: 3em;
+    padding-top: 2em;
+    background-color: white;
+    max-width: 700px;
+    justify-content: center;
+}
+
+.context-block {
+    margin-left: 20px;
+    padding: 10px;
+    background-color: #e6f2ff;
+    border-left: 2px solid #0066cc;
+}
+
+.article-link {}
+
+img {
+    width: 80%;
+}
+
+a {
+    color: blue;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table,
+th,
+td {
+    border: 1px solid black;
+    padding: 5px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    padding: 0px, 0px, 0px, 0px;
+    margin: 0px, 0px, 0px, 0px;
+
+}
+
+h1,
+h2 {
+
+    margin-top: 60px;
+
+}
