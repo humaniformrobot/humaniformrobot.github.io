@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Gating System Design Calculator</title>
+
+    <style>
+        #content {
+            margin: 5em 30em 5em 30em;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 500px;
+            padding: 3em;
+            padding-top: 2em;
+            background-color: white;
+            max-width: 700px;
+            justify-content: center;
+        }
+
+        body {
+            background-color: lightblue;
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        form {
+            display: grid;
+            gap: 10px;
+        }
+
+        label {
+            display: block;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="content">
+        <h1>Gating System Calculator</h1>
+        <p>Notice: This is EXPERIMENTAL, do your own calculations, do not trust.</p>
+
+        <p>Enter the parameters below to calculate the optimal fill time, choke area, runner sizes, and ingate sizes for
+            your casting gating system.</p>
+        <form id="calcForm">
+            <label for="material">Material:</label>
+            <select id="material">
+                <option value="Aluminum">Aluminum</option>
+                <option value="Ductile Iron">Ductile Iron</option>
+                <option value="Steel">Steel</option>
+                <option value="Cast Iron">Cast Iron</option>
+            </select>
+            <div id="alSubtype" style="display: none;">
+                <label for="alType">Aluminum Type:</label>
+                <select id="alType">
+                    <option value="pure">99% pure Al (density 0.098 lb/in³)</option>
+                    <option value="si">Al-Si alloy (0.096)</option>
+                    <option value="cu">Al-Cu alloy (0.102)</option>
+                </select>
+            </div>
+            <div id="fluidityDiv" style="display: none;">
+                <label for="fluidity">Fluidity (from spiral test):</label>
+                <input type="number" id="fluidity" min="0" step="any">
+            </div>
+            <label for="weight">Casting Weight W (lbs):</label>
+            <input type="number" id="weight" min="0" step="any" required>
+            <label for="thickness">Predominant Thickness T (inches):</label>
+            <input type="number" id="thickness" min="0" step="any" required>
+            <label for="h_eff">Effective Sprue Height h_eff (inches):</label>
+            <input type="number" id="h_eff" min="0" step="any" required>
+            <label for="sprueType">Sprue Type:</label>
+            <select id="sprueType">
+                <option value="round">Round (f=0.2)</option>
+                <option value="square">Square (f=1.3)</option>
+                <option value="rectangle">Rectangle (f=1.8)</option>
+            </select>
+            <label for="numRunners">Number of Runners:</label>
+            <input type="number" id="numRunners" min="1" value="1" required>
+            <label for="numIngates">Number of Ingates per Runner:</label>
+            <input type="number" id="numIngates" min="1" value="1" required>
+            <button type="button" id="calculate">Calculate</button>
+        </form>
+        <div id="results"></div>
+        <script>
+            const materialSelect = document.getElementById('material');
+            const alSubtype = document.getElementById('alSubtype');
+            const fluidityDiv = document.getElementById('fluidityDiv');
+            materialSelect.addEventListener('change', () => {
+                alSubtype.style.display = materialSelect.value === 'Aluminum' ? 'block' : 'none';
+                fluidityDiv.style.display = materialSelect.value === 'Cast Iron' ? 'block' : 'none';
+            });
+            if (materialSelect.value === 'Aluminum') alSubtype.style.display = 'block';
+            if (materialSelect.value === 'Cast Iron') fluidityDiv.style.display = 'block';
+            document.getElementById('calculate').addEventListener('click', () => {
+                const material = materialSelect.value;
+                let rho;
+                if (material === 'Aluminum') {
+                    const alType = document.getElementById('alType').value;
+                    if (alType === 'pure') rho = 0.098;
+                    else if (alType === 'si') rho = 0.096;
+                    else rho = 0.102;
+                } else if (material === 'Steel') {
+                    rho = 0.284;
+                } else {
+                    rho = 0.26;
+                }
+                const W = parseFloat(document.getElementById('weight').value);
+                const T = parseFloat(document.getElementById('thickness').value);
+                const h_eff = parseFloat(document.getElementById('h_eff').value);
+                const sprueType = document.getElementById('sprueType').value;
+                let f;
+                if (sprueType === 'round') f = 0.2;
+                else if (sprueType === 'square') f = 1.3;
+                else f = 1.8;
+                const numRunners = parseInt(document.getElementById('numRunners').value);
+                const numIngates = parseInt(document.getElementById('numIngates').value);
+                let fluidity;
+                if (material === 'Cast Iron') {
+                    fluidity = parseFloat(document.getElementById('fluidity').value);
+                }
+                let t_opt;
+                if (material === 'Aluminum') {
+                    let c;
+                    if (T < 0.25) c = 0.68;
+                    else if (T <= 0.4375) c = 0.8;
+                    else c = 1.43;
+                    t_opt = c * Math.sqrt(W);
+                } else if (material === 'Ductile Iron') {
+                    let c;
+                    if (T < 0.25) c = 1.4;
+                    else if (T <= 0.75) c = 1.8;
+                    else if (T <= 3) c = 2.0;
+                    else c = 2.3;
+                    t_opt = c * Math.sqrt(W);
+                } else if (material === 'Steel') {
+                    let c;
+                    if (W < 100) c = 1.2;
+                    else if (W > 100000) c = 0.5;
+                    else {
+                        const lnW = Math.log(W);
+                        const ln100 = Math.log(100);
+                        const ln100k = Math.log(100000);
+                        const slope = (0.5 - 1.2) / (ln100k - ln100);
+                        c = 1.2 + slope * (lnW - ln100);
+                    }
+                    t_opt = c * Math.sqrt(W);
+                } else {
+                    const K = fluidity / 40;
+                    const factor = K * (0.95 + T / 0.853);
+                    if (W < 1000) {
+                        t_opt = factor * Math.sqrt(W);
+                    } else {
+                        t_opt = factor * Math.pow(W, 1 / 3);
+                    }
+                }
+                const g = 386.4;
+                const A_choke = f * W / (rho * t_opt * Math.sqrt(2 * g * h_eff));
+                const isAl = material === 'Aluminum';
+                const ratio_runner = isAl ? 4 : 2;
+                const ratio_ingate = isAl ? 4 : 2;
+                const A_runner_total = ratio_runner * A_choke;
+                const A_ingate_total = ratio_ingate * A_choke;
+                const A_runner_per = A_runner_total / numRunners;
+                const A_ingate_per = A_ingate_total / numRunners;
+                let ingate_areas = [];
+                if (numIngates === 1) {
+                    ingate_areas = [A_ingate_per];
+                } else {
+                    const r = 1.05;
+                    const sum_factor = (Math.pow(r, numIngates) - 1) / (r - 1);
+                    const A1 = A_ingate_per / sum_factor;
+                    for (let i = 0; i < numIngates; i++) {
+                        ingate_areas.push(A1 * Math.pow(r, i));
+                    }
+                }
+                let runner_sections = [];
+                let current_runner = A_runner_per;
+                runner_sections.push(current_runner);
+                for (let i = 0; i < numIngates; i++) {
+                    const reduced = current_runner - ingate_areas[i];
+                    current_runner = reduced * 1.05;
+                    runner_sections.push(current_runner);
+                }
+                let html = `<h2>Results:</h2>
+            <p>Optimal Fill Time (t_opt): ${t_opt.toFixed(2)} seconds</p>
+            <p>Choke Area (A_choke): ${A_choke.toFixed(4)} in²</p>
+            <p>Total Runner Area: ${A_runner_total.toFixed(4)} in²</p>
+            <p>Total Ingate Area: ${A_ingate_total.toFixed(4)} in²</p>
+            <h3>Per Runner (for one of ${numRunners} runners):</h3>
+            <p>Runner Initial CSA: ${A_runner_per.toFixed(4)} in²</p>
+            <h4>Ingate Areas:</h4>
+            <ul>`;
+                ingate_areas.forEach((area, idx) => {
+                    html += `<li>Ingate ${idx + 1}: ${area.toFixed(4)} in²</li>`;
+                });
+                html += `</ul>
+            <h4>Runner Sections:</h4>
+            <ul>
+            <li>Initial: ${runner_sections[0].toFixed(4)} in²</li>`;
+                for (let i = 1; i < runner_sections.length; i++) {
+                    html += `<li>After Ingate ${i}: ${runner_sections[i].toFixed(4)} in²</li>`;
+                }
+                html += `</ul>`;
+                document.getElementById('results').innerHTML = html;
+            });
+        </script>
+        <footer>
+            <hr>
+
+            lovingly made with no web framework
+            <a href="index.html" class="article-link">Return to Main page </a>
+        </footer>
+    </div>
+
+</body>
+
+</html>
